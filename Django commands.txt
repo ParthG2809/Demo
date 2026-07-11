@@ -1,0 +1,400 @@
+---------------------------------------------------------------
+To install Django
+pip install django
+pip install django==(write version) To install a specific version of django
+django-admin --version
+pip install virtualenv
+
+---------------------------------------------------------------
+To create individual virtualenv
+Go to the specific location and then run virtualenv envname
+
+---------------------------------------------------------------
+To activate the env. In the folder
+myenv\Scripts\activate
+
+---------------------------------------------------------------
+To install Django locally
+activate the env and then pip install django
+
+---------------------------------------------------------------
+To create a Django Project
+Activate env
+django-admin startproject Projectname
+
+---------------------------------------------------------------
+To open in VS Code
+First change the directory to project 
+cd FirstProject
+code .
+
+---------------------------------------------------------------
+To run a server for the project python .\manage.py runserver
+To change the server python .\manage.py runserver 4500
+
+---------------------------------------------------------------
+To properly run the project with each functionalities
+python manage.py migrate and then runserver command
+
+---------------------------------------------------------------
+To make an admin in Django project
+python manage.py createsuperuser
+admin, admin123@gmail.com, test@123
+
+---------------------------------------------------------------
+To create a new app
+python .\manage.py startapp appname
+
+---------------------------------------------------------------
+Make a static folder in the root directory and subfolders of css, js and images
+Add the path of this static folder in settings.py
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+After that to access any of the folders use this in the link
+/static/images/image
+
+---------------------------------------------------------------
+To connect MySQL database
+Paste the below code in settings.py inplace of the Database default code
+DATABASES = {
+    'default': {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "08jan_dbproject",(Database name)
+        "USER": "root",
+        "PASSWORD": "",
+        "HOST": "127.0.0.1",
+        "PORT": "3306",
+    }
+}
+And then run the command python .\manage.py migrate
+Also change the Django version to 4.2 to match with MySQL or change MySQL version which is not preferable. Also when the Django version is changes it is changed for the entire environment so this is only a one time process for the specific enviornment
+To change the Django version pip install django=4.2(This will change the Django version). Do this and then migrate again
+
+---------------------------------------------------------------
+Also make a urls.py in the app folder
+Connect that with project urls.py file with below commands
+
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('myapp.urls')),
+]
+
+---------------------------------------------------------------
+In the app urls.py add the below code and add paths of all the views
+
+from django.contrib import admin
+from django.urls import path, include
+from myapp import views
+
+urlpatterns = [
+    path('', views.index),
+]
+
+---------------------------------------------------------------
+To create models use models.py file and in that make class to make a table
+For Example:
+class Studinfo(models.Model):
+    name=models.CharField(max_length=20)
+    email=models.EmailField()
+    dob=models.DateField()
+    mobile = models.BigIntegerField()
+    address = models.TextField()
+
+---------------------------------------------------------------
+Everytime if a new class is made then run the following commands
+python .\manage.py makemigrations And then run
+python .\manage.py migrate
+
+---------------------------------------------------------------
+To connect the database with admin panel add the below code in admin.py
+from django.contrib import admin
+from .models import *		(Always use .models to import any file)
+
+# Register your models here.
+class StudData(admin.ModelAdmin):	(Example model)
+    ordering=["id"]			(For a specific order i.e. Ascending/Descending OR Alphabetic)
+    list_display=['id', 'name', 'email', 'mobile']	(To Display in list form the attributes you want to see)
+
+admin.site.register(Studinfo, StudData)	(Register the class and model)
+
+							CRUD Operations in Django
+---------------------------------------------------------------
+To create/write data in database from frontend
+To make the form connect with the database
+First always write method='post' in form tag in html file and write {% csrf_token %} under the form tag before writing anything else inside the form
+
+
+Make forms.py file in the app folder
+in that write the code as below
+
+from django import forms (To import form that connects the database to the HTML form)
+from .models import *	 (To import the models from models.py)
+
+class Studform(forms.ModelForm):	(Make a class and also pass the parameter: forms.ModelForm)
+    class Meta:			(Make a class name Meta compulsorily)
+        model=Studinfo		
+        fields='__all__'	(To get all the columns of the table write __all__)
+
+
+In views.py
+import forms as: from forms import *
+
+in the function of the page write as below example:
+def index(request):
+    if request.method=='POST':
+        std=Studform(request.POST)
+        if std.is_valid():		(If the conditions are matched with forms.py)
+            std.save()			(To save the data in the database)
+            print("Data inserted")
+        else:
+            print(std.errors)		(To show what error has occurred in the terminal)
+    return render(request, 'index.html')
+
+---------------------------------------------------------------
+To get data from the database
+To get it in a new file make a new template and design it.
+In views make a new function for the template file and give context to it like the given example below:
+def showdata(request):
+    stdata=Studinfo.objects.all()		(This is making objects for all the data you want to get from the table)
+    return render(request, 'showdata.html',{'stdata':stdata})	(Passing this as key value pairs)
+
+In the HTML file, if there are more than one data then you have to run a loop and end it as well like below
+{% for i in range of stdata %}
+	Write the HTML code in between this like the example below:
+		<table border="2", align="center">
+        		<tr>
+            			<th>ID</th>
+            			<th>Name</th>
+            			<th>Email</th>
+            			<th>DOB</th>
+            			<th>Number</th>
+        		</tr>
+
+        		{% for i in stdata %}
+        		<tr>
+            			<td>{{i.id}}</td>		(Pass the values you want to display in this format)
+            			<td>{{i.name}}</td>
+           	 		<td>{{i.email}}</td>
+            			<td>{{i.dob}}</td>
+            			<td>{{i.mobile}}</td>
+        		</tr>
+        		{% endfor %}
+    		</table>
+{% endfor %}
+
+---------------------------------------------------------------
+To delete data from database using frontend
+
+Make a delete button where all the data is shown. 
+<td><a href="/updatedata/{{ i.id }}">Update</a> &nbsp; <a href="/deletedata/{{ i.id }}">Delete</a></td> Remember to write i.id to get the specific data
+
+In views.py import redirect
+from django.shortcuts import render, redirect
+
+Write this for the delete code
+def deletedata(request, id):
+    stid=Studinfo.objects.get(id=id)
+    Studinfo.delete(stid)
+    return redirect('showdata') Redirect is used to redirect the page to display after deleting the desired data
+
+Write the below code in urls.py
+path('deletedata/<int:id>', views.deletedata,  name='deletedata')	(to get the data for a specific id deletedata/<int:id/> has to be written)
+
+---------------------------------------------------------------
+To update data from database using frontend
+
+To get the values in the text and input fields write as below in the html code
+	<input type="text" name="name" value="{{stid.name}}" placeholder="Name"><br><br>
+        <input type="email" name="email" value="{{stid.email}}" placeholder="Email"><br><br>
+        <input type="date" name="dob" value="{{ stid.dob|date:'Y-m-d' }}"><br><br>		(Here the format is Y, m and d. This is to be strictly followed as M is for minutes)
+        <input type="number" name="mobile" value="{{stid.mobile}}" placeholder="Number"><br><br>
+        <textarea name="address" placeholder="Address">{{ stid.address }}</textarea><br><br> (Since this is textare it does not have value so it is written between the tags)
+        <input type="submit" value="Update">
+
+In views.py the following code is to be written by making updatedata function
+def updatedata(request, id):
+    stid=Studinfo.objects.get(id=id)
+    if request.method == 'POST':
+        std = Studform(request.POST, instance=stid)		(To get the specific id data instance of that id is to be passed)
+        if std.is_valid():
+            std.save()
+            print("Data updated")
+            return redirect('showdata')
+        else:
+            print(std.errors)
+    return render(request, 'updatedata.html', {'stid': stid})	(Here id is passed as the key to get all the data)
+
+In urls.py write the code as below
+path('updatedata/<int:id>/', views.updatedata, name='updatedata'), (to get the data for a specific id updatedata/<int:id/> has to be written)
+
+---------------------------------------------------------------
+Authentication for login and signup
+
+Signup is the same as insert data
+
+For Login
+First make an html page, 
+In the views.py make a function for the same and write the code same as the below example:
+def index(request):
+    if request.method=='POST':
+        em=request.POST["email"]		(to get the email from the login form and store it in a variable)
+        pw=request.POST["password"]		(to get the password from the login form and store it in a variable)
+
+        user=UserSignup.objects.filter(email=em, password=pw)	(make a variable and use filter method to authenticate the details entered with the database and specifically the SignUp table. First write the column to verify and then the variable name which is made to get the details and same to be done with the password column as well)
+        if user:
+            print("Login Successful!")
+            return redirect('home')		(After login redirect to home page)
+        else:
+            print("Error! Login Failed. Please Try Again")
+    return render(request, 'index.html')
+
+Also add url of home in urls.py
+path('home/', views.home, name='home'),
+
+---------------------------------------------------------------
+To add session in the website
+In views.py in the index function or the function used for login add this line inside the if condition after logging in successfully
+if user:
+            print("Login Successful!")
+
+            request.session["user"]=em (This will also display the name/email or whatever value inside the homepage once you login. session generate. session is stored in dictionary format. Seesion is stored for 14 days in Django)
+            return redirect('home')
+
+---------------------------------------------------------------
+To logout
+
+There is a built in logout method in Django. Import that method
+from django.contrib.auth import logout
+
+Make a separate function inside views.py
+def userlogout(request):
+    logout(request)
+    return redirect('/')
+
+Also add a logoutuser url inside urls.py
+path('userlogout/', views.userlogout),
+
+In the home page or inside the website, where there is logout button give the below link to redirect it to that page
+<a href="/userlogout" class="logout-btn">Logout</a>
+
+---------------------------------------------------------------
+For more than one app in a single project
+Create all the apps using the python ./manage.py startapp appname
+Make urls.py for all the apps in their folders and add the paths of the views created in the app's views.py
+
+In the main urls.py of the project add paths like given below
+path('', include('UserApp.urls')),
+path('admin/', include('AdminApp.urls')),	(Remember to first comment out the default admin panel path)
+
+---------------------------------------------------------------
+For Template Inheritance
+When there is repeated code use this. Make a base.html
+
+Add the repeated code there and then give the below code in other html files
+{% extends 'base.html' %}
+
+And if you want to change something in the repeated code then just add this code first in the base.html
+For example you want to change the title in each page
+{% block title %}{% endblock %}
+
+In index, about and contact write this codeline
+{% block title %}Welcome{% endblock %}, {% block title %}About{% endblock %}, {% block title %}Contact{% endblock %}
+
+---------------------------------------------------------------
+Make website live
+
+pip freeze > requirements.txt (To make a file with all the project requirements)
+then change the DEBUG to FALSE
+and ALLOWED_HOSTS = ['*']
+
+---------------------------------------------------------------
+REST API
+install rest library
+
+pip install djangorestframework
+Then in settings.py in Installed APPS, register it like 'rest_framework'
+
+Then make serializer.py in app and add the below code in the file
+
+from rest_framework import serializers
+from .models import *
+
+class StudSerial(serializers.ModelSerializer):
+    class Meta:
+        model=Studinfo
+        fields='__all__'
+
+
+HTTP REQUEST Types
+GET, POST, PUT, DELETE
+
+In views.py file for GET, DELETE and GET by ID
+first import all these libraries in views.py:
+
+from django.shortcuts import render
+from .serializer import *
+from .models import *
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
+For GET:
+@api_view(['GET'])			(Write the type of function you want to perform first before creating the view for it)
+def getall(request):
+    stdata=Studinfo.objects.all()
+    serial=StudSerial(stdata, many=True)
+    return Response(serial.data)
+
+For Getting Specific data:
+@api_view(['GET'])
+def getid(request, id):
+    try:
+        stid=Studinfo.objects.get(id=id)
+    except Studinfo.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    serial=StudSerial(stid)
+    return Response(serial.data)
+
+For DELETE and displaying the data you want to delete:
+@api_view(['DELETE', 'GET'])
+def deleteid(request, id):
+    try:
+        stid=Studinfo.objects.get(id=id)
+    except Studinfo.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.method=='GET':
+        serial=StudSerial(stid)
+        return Response(serial.data)
+    if request.method=='DELETE':
+        Studinfo.delete(stid)
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+Give urls for all of this in application urls.py file
+from django.contrib import admin
+from django.urls import path, include
+from apiapp import views
+
+urlpatterns = [
+    path('getall/', views.getall),
+    path('getid/<int:id>', views.getid),
+    path('deleteid/<int:id>', views.deleteid),
+]
+
+
+And give the path of application urls.py in project urls.py
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('apiapp.urls')),
+]
+
+
+SocialAuthApp is default name taken
